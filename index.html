@@ -565,10 +565,10 @@ function labelSprite(text){
   sp.renderOrder=999;
   return sp;
 }
-// dessine un emoji parfaitement centré (mesure ses pixels réels -> fiable sur mobile)
-function drawEmojiCentered(ctx,txt,cx,cy,box){
+// emoji rendu normalement (fillText) mais recentré via la mesure de ses pixels réels
+function drawEmojiCentered(ctx,txt,cx,cy,fontPx){
   const S=100, tc=document.createElement('canvas'); tc.width=tc.height=S; const tg=tc.getContext('2d');
-  tg.font=Math.round(S*0.7)+'px serif'; tg.textAlign='center'; tg.textBaseline='middle';
+  tg.font=fontPx+'px serif'; tg.textAlign='center'; tg.textBaseline='middle';
   tg.fillText(txt,S/2,S/2);
   let minX=S,minY=S,maxX=0,maxY=0,found=false;
   try{
@@ -576,14 +576,12 @@ function drawEmojiCentered(ctx,txt,cx,cy,box){
     for(let y=0;y<S;y++) for(let x=0;x<S;x++){ if(d[(y*S+x)*4+3]>16){ found=true;
       if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y; } }
   }catch(_){}
+  const ox = found ? (minX+maxX)/2 - S/2 : 0;   // décalage du centre visuel
+  const oy = found ? (minY+maxY)/2 - S/2 : 0;
   ctx.save();
-  ctx.beginPath(); ctx.arc(cx,cy,box*0.78,0,7); ctx.clip();
-  if(found){
-    const ew=maxX-minX+1, eh=maxY-minY+1, scale=box/Math.max(ew,eh), dw=ew*scale, dh=eh*scale;
-    ctx.drawImage(tc,minX,minY,ew,eh,cx-dw/2,cy-dh/2,dw,dh);
-  } else { // repli
-    ctx.font='40px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(txt,cx,cy);
-  }
+  ctx.beginPath(); ctx.arc(cx,cy,40,0,7); ctx.clip();   // sécurité anti-débordement
+  ctx.font=fontPx+'px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt, cx-ox, cy-oy);
   ctx.restore();
 }
 function bubbleTex(emoji,done){
@@ -594,8 +592,8 @@ function bubbleTex(emoji,done){
   // pastille ronde
   g.beginPath(); g.arc(64,56,46,0,7); g.fillStyle=done?'#e3f5d6':'#fff8ec'; g.fill();
   g.lineWidth=6; g.strokeStyle=done?'#3a9a4a':'#3a2810'; g.stroke();
-  // emoji centré par pixels réels
-  drawEmojiCentered(g, done?'✅':emoji, 64, 56, 56);
+  // emoji taille normale + recentré
+  drawEmojiCentered(g, done?'✅':emoji, 64, 56, 46);
   const t=new THREE.CanvasTexture(c); t.anisotropy=4; return t;
 }
 function iconSprite(emoji){
